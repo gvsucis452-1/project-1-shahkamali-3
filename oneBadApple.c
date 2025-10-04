@@ -3,7 +3,7 @@
  * oneBadApple.c
  * CIS 451 Project 1 (F25)
  *
- * !!! Name(s) !!!
+ * Gerrit Mitchell + Shah Kamali
  *************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
