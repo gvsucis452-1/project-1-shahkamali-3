@@ -15,3 +15,11 @@ int main(int argc, char *argv[]) {
     /* Do stuff */
     return 0;
 }
+
+void interrupthandler(int sig_num) {
+        if (sig_num == SIGINT) {
+                sleep(1);
+                exit(0);
+                return;
+        }
+}
