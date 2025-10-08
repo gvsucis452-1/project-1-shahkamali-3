@@ -1,0 +1,49 @@
+CIS 452 – Project One: “One Bad Apple”
+Design & Implementation Document
+Authors: Gerrit Mitchell + Shah Kamali
+Term: Fall 2025
+
+1) Problem Summary
+We must simulate a ring (circular) communication system of k UNIX processes. 
+Each node only connects to its immediate neighbor via a one‑way channel. A single “apple” token circulates to synchronize actions: 
+a node may only send after receiving. Node 0 (the original parent) injects user messages into the ring and, when the apple returns empty, 
+prompts for the next destination and text. Ctrl‑C must gracefully terminate all processes.
+
+2) IPC & Synchronization Model
+• IPC primitive: POSIX anonymous pipes.
+• Topology: k unidirectional pipes pipe[i], where pipe[i] goes from node i to node (i+1) mod k.
+  – Reader of node j is pipe[(j−1) mod k][0].
+  – Writer of node j is pipe[j][1].
+• Token (“apple”): fixed‑size struct sent through the pipes.
+  typedef struct {
+    int  dest;           // −1 means empty header
+    int  origin;         // node that created the message
+    char text[1024];     // payload (NUL‑terminated)
+  } apple_t;
+• Protocol:
+  1) Node 0 seeds the ring with an empty apple (dest = −1).
+  2) Any node receiving an empty apple forwards it unchanged—except node 0,
+     which prompts the user, fills the header (dest ∈ [0,k−1]), sets origin=0,
+     copies the text, and forwards it.
+  3) Any node receiving a non‑empty apple:
+     – If dest == my_id: “process” the payload (print a verbose line),
+       then clear the header (dest = −1), overwrite origin with my_id,
+       and forward the empty apple.
+     – Else: forward unchanged.
+This satisfies “a node can only send in response to receiving” because all sends are triggered by the blocking read completing.
+
+3) Process Management
+• Parent (node 0) reads k, creates k pipes, then fork()s nodes 1..k−1.
+• Each process closes all unused pipe fds to enforce one‑way connectivity.
+• Node ids: 0..k−1 where the parent is node 0.
+• Each node blocks in read() on its inbound pipe, then write()s to its outbound pipe.
+• stdout is set to line‑buffered to keep logs readable across processes.
+
+4) Signals & Graceful Shutdown
+• Ctrl‑C (SIGINT) is handled by the parent only:
+  – Broadcast SIGUSR1 to all child PIDs (recorded during fork).
+  – Close its pipe fds and reap children with wait().
+  – Exit.
+• Children handle SIGUSR1 by setting a stop flag. read() is interrupted (EINTR),
+  the loop breaks, fds are closed, and the process exits cleanly.
+This uses signals for shutdown as required, with no sleep() or busy‑wait.
