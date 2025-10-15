@@ -309,11 +309,13 @@ int main(void) {
     printf("          Press Ctrl-C (or enter 'q' at destination prompt) to exit.\n");
 
     /* Seed the ring with an empty apple to start the cycle */
+    // zk I haven't seen this syntax before.
     apple_t seed = {.dest = DEST_EMPTY, .origin = 0};
     seed.text[0] = '\0';
     if (write_full(write_fd, &seed, sizeof(seed)) < 0) {
         perror("write(seed)");
         /* try to shutdown */
+        // zk What's the difference between raise and kill? 
         raise(SIGINT);
     }
 
